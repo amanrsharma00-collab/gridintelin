@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta name="description" content="GridIntel India — Real-time LMP congestion monitoring, N-1 contingency analysis and CRR management for Indian power markets. All 5 RLDC regions covered."/>
+<meta property="og:title" content="GridIntel India — Power Grid Congestion Intelligence"/>
+<meta property="og:description" content="Real-time LMP pricing, N-1 contingency analysis, CRR management for NLDC·RLDC·SLDC operators across India's 5 grid regions."/>
+<meta property="og:type" content="website"/>
+<title>GridIntel India — Power Grid Congestion Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23f97316'/><circle cx='8' cy='16' r='3' fill='white'/><circle cx='24' cy='8' r='3' fill='white' opacity='.8'/><circle cx='24' cy='24' r='3' fill='white' opacity='.8'/><line x1='11' y1='16' x2='21' y2='9' stroke='white' stroke-width='1.5'/><line x1='11' y1='16' x2='21' y2='23' stroke='white' stroke-width='1.5'/></svg>"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#04080f;--bg2:#080e1a;--card:#0c1422;--card2:#111c2e;
+  --ora:#f97316;--ora-d:rgba(249,115,22,.15);
+  --cya:#22d3ee;--grn:#4ade80;--red:#f87171;--amb:#fbbf24;--pur:#a78bfa;
+  --bdr:rgba(255,255,255,.06);--bdr2:rgba(255,255,255,.1);
+  --t1:#f1f5f9;--t2:#94a3b8;--t3:#475569;--t4:#64748b;
+  --mono:'JetBrains Mono',monospace;--sans:'Space Grotesk',sans-serif;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--bg);color:var(--t1);-webkit-font-smoothing:antialiased;overflow-x:hidden;line-height:1.6}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px}
+h1{font-size:clamp(1.8rem,3.5vw,3rem);font-weight:700;letter-spacing:-.03em;line-height:1.1}
+h2{font-size:clamp(1.3rem,2.5vw,1.8rem);font-weight:600;letter-spacing:-.02em}
+h3{font-size:1rem;font-weight:600}
+
+/* Cards */
+.card{background:var(--card);border:1px solid var(--bdr);border-radius:14px;transition:border-color .2s,background .2s}
+.card:hover{border-color:rgba(255,255,255,.1);background:var(--card2)}
+
+/* Page wrapper */
+.page{min-height:calc(100vh - 56px)}
+
+/* Buttons — kept for inline references */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--sans);font-size:14px;font-weight:500;padding:10px 22px;border-radius:10px;cursor:pointer;border:none;transition:all .2s;text-decoration:none}
+.bp{background:var(--ora);color:#fff}.bp:hover{background:#ea6a0a;transform:translateY(-1px)}
+.bs2{background:transparent;color:var(--t1);border:1px solid var(--bdr)}.bs2:hover{border-color:var(--bdr2);background:rgba(255,255,255,.04)}
+.bg2{background:transparent;color:var(--t2);font-size:12px;padding:6px 13px;border:1px solid rgba(255,255,255,.08)}.bg2:hover{color:var(--t1);background:rgba(255,255,255,.04)}
+.bg2.act{color:var(--ora);background:var(--ora-d);border-color:rgba(249,115,22,.3)}
+
+/* Skeleton */
+@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+.sk{background:linear-gradient(90deg,var(--card) 25%,var(--card2) 50%,var(--card) 75%);background-size:400px 100%;animation:shimmer 1.4s infinite;border-radius:5px}
+
+/* Animations */
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fadeUp .4s ease forwards}
+@keyframes pulseGlow{0%,100%{opacity:1}50%{opacity:.35}}
+.pulse{animation:pulseGlow 2s ease-in-out infinite}
+
+/* Grid helpers */
+@media(max-width:900px){
+  .grid-4-col{grid-template-columns:repeat(2,1fr)!important}
+  .grid-2-col{grid-template-columns:1fr!important}
+  .grid-5-col{grid-template-columns:repeat(2,1fr)!important}
+  .grid-3-col{grid-template-columns:1fr!important}
+  .lmp-detail-grid{grid-template-columns:1fr!important}
+}
+@media(max-width:600px){
+  .grid-4-col{grid-template-columns:1fr!important}
+  nav .desktop-links{display:none!important}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<!-- React 18 UMD -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+<!-- App -->
+<script src="./app.js"></script>
+</body>
+</html>
