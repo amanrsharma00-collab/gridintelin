@@ -1,52 +1,35 @@
 import { REGION_CONFIG } from '../data/substations';
 import { VOLTAGE_CONFIG } from '../data/transmissionLines';
 
-export default function Sidebar({ open, filters, setFilters, gridData, liveStats }) {
-  const toggleVoltage = (v) => {
-    setFilters(f => ({
-      ...f,
-      voltages: f.voltages.includes(v) ? f.voltages.filter(x => x !== v) : [...f.voltages, v],
-    }));
-  };
+const FREE_REGIONS  = new Set(['NR', 'WR']);
+const FREE_VOLTAGES = new Set(['765kv', '400kv', '220kv', '132kv']);
 
-  const toggleRegion = (r) => {
-    setFilters(f => ({
-      ...f,
-      regions: f.regions.includes(r) ? f.regions.filter(x => x !== r) : [...f.regions, r],
-    }));
-  };
+export default function Sidebar({ open, filters, gridData, liveStats, userTier,
+  onToggleRegion, onToggleVoltage, onUpgrade }) {
 
-  const regionStats = {
-    NR:  { lmp: 4820, demand: 68500, status: 'Normal' },
-    WR:  { lmp: 4215, demand: 72000, status: 'Normal' },
-    SR:  { lmp: 5140, demand: 58000, status: 'Congested' },
-    ER:  { lmp: 3980, demand: 32000, status: 'Normal' },
-    NER: { lmp: 4600, demand: 4200,  status: 'Normal' },
-  };
+  const isPro = userTier === 'pro' || userTier === 'enterprise';
 
-  // Merge with live Supabase data if available
-  if (gridData?.length) {
-    gridData.forEach(r => {
-      const key = r.region_code || r.region_name?.slice(0, 2).toUpperCase();
-      if (key && regionStats[key]) {
-        regionStats[key].lmp = r.current_lmp ?? regionStats[key].lmp;
-        regionStats[key].status = r.congestion_status ?? regionStats[key].status;
-      }
-    });
-  }
+  // LMP: use IEX prices if available, else fallback
+  const iexPrices = liveStats?.iexPrices ?? {};
+  const fallback  = { NR: 4820, WR: 4215, SR: 5140, ER: 3980, NER: 4600 };
+  const getLMP = r => iexPrices[r] ?? fallback[r];
+
+  const statusMap = {};
+  (gridData ?? []).forEach(r => { statusMap[r.id] = r.congestion_status ?? 'Normal'; });
 
   return (
     <aside className={`sidebar ${open ? 'open' : 'closed'}`}>
+
       {/* Grid Summary */}
       <section className="sidebar-section">
         <div className="section-title">🇮🇳 Grid Summary</div>
         <div className="summary-grid">
           <div className="summary-card">
-            <div className="sc-val">{((liveStats?.totalGeneration ?? 210000) / 1000).toFixed(1)}<span>GW</span></div>
-            <div className="sc-label">Total Generation</div>
+            <div className="sc-val">{((liveStats?.totalGeneration ?? 210000)/1000).toFixed(1)}<span>GW</span></div>
+            <div className="sc-label">Generation</div>
           </div>
           <div className="summary-card">
-            <div className="sc-val">{((liveStats?.peakDemand ?? 225000) / 1000).toFixed(1)}<span>GW</span></div>
+            <div className="sc-val">{((liveStats?.peakDemand ?? 225000)/1000).toFixed(1)}<span>GW</span></div>
             <div className="sc-label">Peak Demand</div>
           </div>
           <div className="summary-card green">
@@ -54,23 +37,27 @@ export default function Sidebar({ open, filters, setFilters, gridData, liveStats
             <div className="sc-label">Renewable</div>
           </div>
           <div className="summary-card">
-            <div className="sc-val">5<span>R</span></div>
-            <div className="sc-label">Grid Regions</div>
+            <div className="sc-val" style={{ fontSize: 11, color: '#f97316' }}>
+              {liveStats?.source === 'simulated' ? 'Sim' : 'IEX'}
+            </div>
+            <div className="sc-label">Data Source</div>
           </div>
         </div>
       </section>
 
       {/* Regional LMP */}
       <section className="sidebar-section">
-        <div className="section-title">Regional LMP (₹/MWh)</div>
+        <div className="section-title">Regional LMP (₹/MWh) — IEX DAM</div>
         {Object.entries(REGION_CONFIG).map(([code, cfg]) => {
-          const active = filters.regions.includes(code);
-          const stats = regionStats[code];
+          const isFree   = FREE_REGIONS.has(code);
+          const locked   = !isPro && !isFree;
+          const active   = filters.regions.includes(code);
+
           return (
             <button
               key={code}
-              className={`region-row ${active ? 'active' : 'inactive'}`}
-              onClick={() => toggleRegion(code)}
+              className={`region-row ${active ? 'active' : 'inactive'} ${locked ? 'locked-row' : ''}`}
+              onClick={() => locked ? onUpgrade() : onToggleRegion(code)}
             >
               <div className="region-dot" style={{ background: cfg.color }} />
               <div className="region-info">
@@ -78,10 +65,16 @@ export default function Sidebar({ open, filters, setFilters, gridData, liveStats
                 <div className="region-rto">{cfg.rto} · {cfg.hq}</div>
               </div>
               <div className="region-right">
-                <div className="region-lmp">₹{stats.lmp.toLocaleString()}</div>
-                <div className={`region-status ${stats.status === 'Congested' ? 'congested' : 'normal'}`}>
-                  {stats.status}
-                </div>
+                {locked ? (
+                  <div className="lock-badge">🔒 Pro</div>
+                ) : (
+                  <>
+                    <div className="region-lmp">₹{getLMP(code).toLocaleString()}</div>
+                    <div className={`region-status ${statusMap[code] === 'High' ? 'congested' : 'normal'}`}>
+                      {statusMap[code] ?? 'Normal'}
+                    </div>
+                  </>
+                )}
               </div>
             </button>
           );
@@ -92,45 +85,38 @@ export default function Sidebar({ open, filters, setFilters, gridData, liveStats
       <section className="sidebar-section">
         <div className="section-title">Transmission Voltage</div>
         {Object.entries(VOLTAGE_CONFIG).map(([key, cfg]) => {
+          const locked = !isPro && !FREE_VOLTAGES.has(key);
           const active = filters.voltages.includes(key);
           return (
             <button
               key={key}
-              className={`voltage-row ${active ? 'active' : 'inactive'}`}
-              onClick={() => toggleVoltage(key)}
+              className={`voltage-row ${active ? 'active' : 'inactive'} ${locked ? 'locked-row' : ''}`}
+              onClick={() => locked ? onUpgrade() : onToggleVoltage(key)}
             >
-              <span className="v-swatch" style={{ background: cfg.color, boxShadow: active ? `0 0 8px ${cfg.color}` : 'none' }} />
+              <span className="v-swatch" style={{ background: locked ? '#334155' : cfg.color, boxShadow: (!locked && active) ? `0 0 8px ${cfg.color}` : 'none' }} />
               <span className="v-label">{cfg.label}</span>
-              <span className={`v-toggle ${active ? 'on' : 'off'}`}>{active ? 'ON' : 'OFF'}</span>
+              {locked
+                ? <span className="lock-badge">🔒 Pro</span>
+                : <span className={`v-toggle ${active ? 'on' : 'off'}`}>{active ? 'ON' : 'OFF'}</span>
+              }
             </button>
           );
         })}
       </section>
 
-      {/* Layer Toggles */}
-      <section className="sidebar-section">
-        <div className="section-title">Map Layers</div>
-        <button
-          className={`layer-row ${filters.showSubstations ? 'active' : 'inactive'}`}
-          onClick={() => setFilters(f => ({ ...f, showSubstations: !f.showSubstations }))}
-        >
-          <span className="layer-icon">🔷</span>
-          <span className="layer-label">Substations</span>
-          <span className={`v-toggle ${filters.showSubstations ? 'on' : 'off'}`}>{filters.showSubstations ? 'ON' : 'OFF'}</span>
-        </button>
-        <button
-          className={`layer-row ${filters.showLines ? 'active' : 'inactive'}`}
-          onClick={() => setFilters(f => ({ ...f, showLines: !f.showLines }))}
-        >
-          <span className="layer-icon">📡</span>
-          <span className="layer-label">Transmission Lines</span>
-          <span className={`v-toggle ${filters.showLines ? 'on' : 'off'}`}>{filters.showLines ? 'ON' : 'OFF'}</span>
-        </button>
-      </section>
+      {/* Tier Banner */}
+      {!isPro && (
+        <section className="sidebar-section">
+          <button className="upgrade-banner" onClick={onUpgrade}>
+            <span>🚀 Unlock all 5 regions + HVDC</span>
+            <span className="upgrade-arrow">Upgrade →</span>
+          </button>
+        </section>
+      )}
 
       <div className="sidebar-footer">
-        <span>Data: PGCIL / NLDC</span>
-        <span>Updated: Live</span>
+        <span>IEX · POSOCO · MERIT</span>
+        <span className={`tier-pill ${userTier}`}>{userTier.toUpperCase()}</span>
       </div>
     </aside>
   );

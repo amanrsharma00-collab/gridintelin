@@ -449,3 +449,43 @@ html, body, #root { height: 100%; overflow: hidden; }
   .header-stat { display: none; }
   .freq-badge .freq-label { display: none; }
 }
+
+/* ── Freemium / Lock styles ───────────────────────────────── */
+.locked-row { cursor: pointer; }
+.locked-row:hover { background: rgba(249,115,22,0.06) !important; }
+.lock-badge { font-size: 10px; color: #f97316; background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.25); border-radius: 4px; padding: 2px 6px; white-space: nowrap; }
+.upgrade-banner { width: 100%; background: linear-gradient(135deg, rgba(249,115,22,0.12), rgba(234,120,249,0.08)); border: 1px solid rgba(249,115,22,0.3); border-radius: 8px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; color: var(--text-hi); font-size: 12px; transition: all 0.2s; margin-bottom: 4px; }
+.upgrade-banner:hover { border-color: var(--accent); background: rgba(249,115,22,0.15); }
+.upgrade-arrow { color: var(--accent); font-weight: 700; }
+.tier-pill { font-size: 9px; font-weight: 800; letter-spacing: 1px; padding: 2px 7px; border-radius: 3px; }
+.tier-pill.free { background: rgba(255,255,255,0.08); color: var(--text-lo); }
+.tier-pill.pro  { background: rgba(249,115,22,0.2);  color: var(--accent); }
+.tier-pill.enterprise { background: rgba(232,121,249,0.2); color: var(--purple); }
+
+/* ── Upgrade Modal ────────────────────────────────────────── */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px); animation: fadeIn 0.18s ease; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.modal-box { background: var(--bg2); border: 1px solid var(--border2); border-radius: 14px; padding: 24px; width: 100%; max-width: 760px; max-height: 90vh; overflow-y: auto; animation: slideUp 0.2s ease; }
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.modal-icon { font-size: 24px; }
+.modal-title { font-size: 22px; font-weight: 700; color: var(--text-hi); margin-bottom: 6px; }
+.modal-sub { font-size: 13px; color: var(--text); margin-bottom: 20px; }
+.modal-tiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+@media (max-width: 640px) { .modal-tiers { grid-template-columns: 1fr; } }
+.tier-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.tier-card.highlight { border-color: rgba(249,115,22,0.4); background: rgba(249,115,22,0.05); }
+.tier-card.current { opacity: 0.7; }
+.tier-badge { font-size: 9px; font-weight: 800; letter-spacing: 1.5px; padding: 3px 8px; border-radius: 4px; width: fit-content; }
+.tier-badge.free       { background: rgba(255,255,255,0.08); color: var(--text-lo); }
+.tier-badge.pro        { background: rgba(249,115,22,0.2);  color: var(--accent); }
+.tier-badge.enterprise { background: rgba(232,121,249,0.2); color: var(--purple); }
+.tier-price { font-size: 24px; font-weight: 800; color: var(--text-hi); }
+.tier-price span { font-size: 13px; color: var(--text-lo); font-weight: 400; }
+.tier-features { list-style: none; display: flex; flex-direction: column; gap: 5px; flex: 1; }
+.tier-features li { font-size: 12px; color: var(--text); }
+.tier-features li.locked { color: var(--text-lo); }
+.tier-cta-current { font-size: 11px; color: var(--text-lo); text-align: center; }
+.tier-cta-pro { display: block; text-align: center; background: var(--accent); color: white; border-radius: 7px; padding: 9px; font-size: 13px; font-weight: 600; text-decoration: none; transition: all 0.2s; }
+.tier-cta-pro:hover { background: #ea6a0a; transform: translateY(-1px); }
+.modal-note { font-size: 11px; color: var(--text-lo); text-align: center; }
