@@ -1,4 +1,5 @@
 // Vercel Serverless — MERIT India Generation Mix (ESM)
+import { setCORSHeaders } from './_auth.js';
 
 const SB_URL         = process.env.VITE_SUPABASE_URL;
 const SB_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -19,7 +20,8 @@ function saveGeneration(record) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  setCORSHeaders(req, res);
+  if (req.method === 'OPTIONS') return res.status(204).end();
   res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=60');
 
   let genData, source;

@@ -1,5 +1,6 @@
 // Vercel Serverless — IEX India DAM Area Prices (ESM)
 // package.json has "type":"module" so must use export default
+import { setCORSHeaders } from './_auth.js';
 
 const SB_URL         = process.env.VITE_SUPABASE_URL;
 // Service key is NEVER sent to the browser — safe for server-side writes
@@ -43,7 +44,8 @@ function saveToSupabase(records) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  setCORSHeaders(req, res);
+  if (req.method === 'OPTIONS') return res.status(204).end();
   res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=60');
 
   let data, source;

@@ -1,4 +1,5 @@
 // Vercel Serverless — POSOCO Grid Frequency (ESM)
+import { setCORSHeaders } from './_auth.js';
 
 const SB_URL         = process.env.VITE_SUPABASE_URL;
 const SB_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -28,7 +29,8 @@ function saveFrequency(hz, source) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  setCORSHeaders(req, res);
+  if (req.method === 'OPTIONS') return res.status(204).end();
   res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=10');
 
   let frequency_hz = null;

@@ -1,5 +1,16 @@
 import { useState } from 'react';
 
+// Fire-and-forget: log auth event to our server-side tracking table
+async function logEvent(eventType, email, success, userId = null, error = null, provider = 'email') {
+  try {
+    await fetch('/api/log-auth-event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_type: eventType, email, success, user_id: userId, error, provider }),
+    });
+  } catch {}
+}
+
 export default function AuthModal({ supabase, onClose, onAuth }) {
   const [mode, setMode]         = useState('signin'); // 'signin' | 'signup'
   const [email, setEmail]       = useState('');
@@ -18,22 +29,28 @@ export default function AuthModal({ supabase, onClose, onAuth }) {
       let result;
       if (mode === 'signin') {
         result = await supabase.auth.signInWithPassword({ email, password });
+
+        if (result.error) {
+          logEvent('failed_sign_in', email, false, null, result.error.message);
+          setError(result.error.message);
+        } else if (result.data?.user) {
+          logEvent('sign_in', email, true, result.data.user.id);
+          onAuth?.(result.data.user);
+          onClose();
+        }
       } else {
         result = await supabase.auth.signUp({ email, password });
-        if (!result.error && result.data?.user) {
+
+        if (result.error) {
+          logEvent('failed_sign_in', email, false, null, result.error.message);
+          setError(result.error.message);
+        } else if (result.data?.user) {
+          logEvent('sign_up', email, true, result.data.user.id);
           setSuccess('Check your email to confirm your account, then sign in.');
-          setLoading(false);
-          return;
         }
       }
-
-      if (result.error) {
-        setError(result.error.message);
-      } else if (result.data?.user) {
-        onAuth?.(result.data.user);
-        onClose();
-      }
     } catch (err) {
+      logEvent('failed_sign_in', email, false, null, 'Unexpected error');
       setError('Unexpected error. Please try again.');
     } finally {
       setLoading(false);
@@ -43,17 +60,16 @@ export default function AuthModal({ supabase, onClose, onAuth }) {
   const handleGoogle = async () => {
     setError('');
     setLoading(true);
+    logEvent('google_oauth', null, true, null, null, 'google');
     const { error: oauthErr } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
+      options: { redirectTo: `${window.location.origin}/` },
     });
     if (oauthErr) {
+      logEvent('failed_sign_in', null, false, null, oauthErr.message, 'google');
       setError(oauthErr.message);
       setLoading(false);
     }
-    // Google OAuth will redirect — no further action needed here
   };
 
   return (
@@ -77,11 +93,7 @@ export default function AuthModal({ supabase, onClose, onAuth }) {
         </p>
 
         {/* Google OAuth */}
-        <button
-          className="auth-google-btn"
-          onClick={handleGoogle}
-          disabled={loading}
-        >
+        <button className="auth-google-btn" onClick={handleGoogle} disabled={loading}>
           <svg width="18" height="18" viewBox="0 0 48 48" style={{ marginRight: 8 }}>
             <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
             <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
@@ -96,25 +108,13 @@ export default function AuthModal({ supabase, onClose, onAuth }) {
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="auth-field">
             <label>Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="you@company.com"
-              required
-              autoFocus
-            />
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+              placeholder="you@company.com" required autoFocus />
           </div>
           <div className="auth-field">
             <label>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••"
-              minLength={8}
-              required
-            />
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••" minLength={8} required />
           </div>
 
           {error   && <div className="auth-error">{error}</div>}
