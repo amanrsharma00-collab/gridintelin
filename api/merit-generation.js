@@ -1,19 +1,9 @@
-// Vercel Serverless Function — MERIT India Generation Mix
-// CommonJS format
+// Vercel Serverless — MERIT India Generation Mix (ESM)
 
 const SB_URL = process.env.VITE_SUPABASE_URL;
 const SB_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 
-async function fetchMERIT() {
-  const res = await fetch('https://meritindia.in/api/current-generation', {
-    headers: { 'User-Agent': 'GridIntelin/1.0', 'Accept': 'application/json' },
-    signal: AbortSignal.timeout(6000),
-  });
-  if (!res.ok) throw new Error(res.status);
-  return res.json();
-}
-
-async function saveGeneration(record) {
+function saveGeneration(record) {
   if (!SB_URL || !SB_KEY) return;
   fetch(`${SB_URL}/rest/v1/merit_generation`, {
     method: 'POST',
@@ -27,27 +17,30 @@ async function saveGeneration(record) {
   }).catch(() => {});
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=60');
 
   let genData, source;
 
   try {
-    const raw = await fetchMERIT();
+    const raw = await fetch('https://meritindia.in/api/current-generation', {
+      headers: { 'User-Agent': 'GridIntelin/1.0', Accept: 'application/json' },
+      signal: AbortSignal.timeout(6000),
+    }).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+
     genData = {
-      thermal_mw:  parseFloat(raw.thermal  || raw.coal   || 0),
-      hydro_mw:    parseFloat(raw.hydro    || raw.hydel  || 0),
-      nuclear_mw:  parseFloat(raw.nuclear  || 0),
-      wind_mw:     parseFloat(raw.wind     || 0),
-      solar_mw:    parseFloat(raw.solar    || 0),
-      other_re_mw: parseFloat(raw.other    || raw.otherRe || 0),
+      thermal_mw:  parseFloat(raw.thermal  ?? raw.coal   ?? 0),
+      hydro_mw:    parseFloat(raw.hydro    ?? raw.hydel  ?? 0),
+      nuclear_mw:  parseFloat(raw.nuclear  ?? 0),
+      wind_mw:     parseFloat(raw.wind     ?? 0),
+      solar_mw:    parseFloat(raw.solar    ?? 0),
+      other_re_mw: parseFloat(raw.other    ?? raw.otherRe ?? 0),
     };
     genData.total_mw = Object.values(genData).reduce((a, b) => a + b, 0);
     source = 'meritindia.in';
     saveGeneration(genData);
   } catch {
-    // Realistic India grid mix (Apr 2026 actuals)
     const base = 210000 + Math.round((Math.random() - 0.5) * 8000);
     genData = {
       thermal_mw:  Math.round(base * 0.57),
@@ -72,4 +65,4 @@ module.exports = async function handler(req, res) {
     source,
     ts: new Date().toISOString(),
   });
-};
+}
