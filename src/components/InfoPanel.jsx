@@ -18,6 +18,9 @@ export default function InfoPanel({ entity, onClose, gridData }) {
 
   return (
     <div className="info-panel">
+      {/* Mobile drag handle */}
+      <div className="ip-handle" aria-hidden="true" />
+
       {/* Header */}
       <div className="ip-header">
         <div className="ip-type-badge" style={{ background: voltCfg.color + '22', color: voltCfg.color, borderColor: voltCfg.color + '44' }}>

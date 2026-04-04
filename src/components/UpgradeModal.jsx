@@ -32,7 +32,7 @@ export default function UpgradeModal({ onClose }) {
           {/* Pro */}
           <div className="tier-card highlight">
             <div className="tier-badge pro">PRO</div>
-            <div className="tier-price">₹4,999<span>/mo</span></div>
+            <div className="tier-price">₹25,999<span>/mo</span></div>
             <ul className="tier-features">
               <li>✓ All 5 PGCIL regions</li>
               <li>✓ All voltage levels incl. HVDC</li>

@@ -563,3 +563,209 @@ html, body, #root { height: 100%; overflow: hidden; }
 .auth-switch { font-size: 12px; color: var(--text-lo); text-align: center; margin-top: 14px; }
 .auth-switch button { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 12px; font-weight: 600; text-decoration: underline; padding: 0; }
 .auth-switch button:hover { color: #ea6a0a; }
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE — < 768px (phones)
+═══════════════════════════════════════════════════════════ */
+@media (max-width: 767px) {
+
+  :root {
+    --header-h:   52px;
+    --ticker-h:   32px;
+    --sidebar-w:  100vw;
+    --info-w:     100vw;
+  }
+
+  /* ── Header — collapse to essentials ── */
+  .header { padding: 0 12px; gap: 8px; }
+
+  /* Hide search bar on mobile */
+  .search-bar { display: none; }
+
+  /* Hide generation/renewable stats */
+  .header-stat { display: none; }
+
+  /* Compact freq badge */
+  .freq-label { display: none; }
+  .freq-badge { padding: 4px 8px; }
+  .freq-val   { font-size: 12px; }
+
+  /* Logo: hide subtitle */
+  .logo-sub { display: none; }
+  .logo-main { font-size: 14px; }
+
+  /* Compact header user chip */
+  .header-email { display: none; }
+  .header-user  { padding: 4px 8px; }
+
+  /* Push right items to margin */
+  .header-right { gap: 8px; }
+
+  /* ── Sidebar — full-width bottom sheet ── */
+  .sidebar {
+    position: fixed;
+    bottom: var(--ticker-h);
+    left: 0;
+    right: 0;
+    width: 100% !important;
+    height: 72vh;
+    max-height: 72vh;
+    border-right: none;
+    border-top: 1px solid var(--border2);
+    border-radius: 16px 16px 0 0;
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.2s;
+    z-index: 400;
+    overflow-y: auto;
+    /* add pull handle */
+    padding-top: 8px;
+  }
+
+  .sidebar::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    background: var(--border2);
+    border-radius: 2px;
+    margin: 0 auto 10px;
+  }
+
+  .sidebar.closed {
+    transform: translateY(100%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* When sidebar open on mobile, dim the map */
+  .sidebar.open ~ .map-container::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 50;
+    pointer-events: none;
+  }
+
+  /* Summary cards 2-col on mobile */
+  .summary-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .sc-val { font-size: 16px; }
+
+  /* Sidebar footer compact */
+  .sidebar-footer { position: sticky; bottom: 0; background: rgba(8,13,24,0.98); }
+
+  /* ── Map container — full screen behind sidebar ── */
+  .map-container { position: absolute; inset: 0; }
+  .main-content  { position: relative; flex: 1; overflow: hidden; }
+
+  /* Map controls — bring up from ticker */
+  .map-controls { bottom: calc(var(--ticker-h) + 12px); right: 10px; }
+  .map-btn { width: 38px; height: 38px; font-size: 20px; }
+
+  /* Map stats overlay — compact horizontal strip */
+  .map-stats-overlay {
+    bottom: calc(var(--ticker-h) + 8px);
+    left: 8px;
+    padding: 4px 8px;
+    gap: 0;
+  }
+  .mso-item { padding: 0 7px; }
+  .mso-val  { font-size: 12px; }
+  .mso-label { font-size: 8px; }
+
+  /* ── Legend — hide on mobile (use sidebar voltage section) ── */
+  .legend { display: none; }
+
+  /* ── Info Panel — full-width bottom sheet ── */
+  .info-panel {
+    position: fixed;
+    bottom: var(--ticker-h);
+    left: 0;
+    right: 0;
+    width: 100% !important;
+    max-height: 60vh;
+    border-left: none;
+    border-top: 1px solid var(--border2);
+    border-radius: 16px 16px 0 0;
+    animation: slideUpMobile 0.25s ease;
+    z-index: 410;
+    padding: 16px;
+    overflow-y: auto;
+  }
+
+  @keyframes slideUpMobile {
+    from { transform: translateY(60px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+
+  /* Add drag handle to info panel */
+  .ip-header { padding-top: 4px; }
+  .ip-handle {
+    width: 36px; height: 4px; background: var(--border2);
+    border-radius: 2px; margin: 0 auto 12px;
+  }
+
+  .ip-metrics { grid-template-columns: 1fr 1fr; }
+  .lmp-val    { font-size: 20px; }
+
+  /* ── Live Ticker — compact ── */
+  .live-ticker { font-size: 11px; height: var(--ticker-h); }
+  .ticker-item { padding: 0 12px; gap: 4px; }
+  .ticker-val  { font-size: 11px; }
+  .ticker-label { font-size: 8px; }
+  .ticker-live { font-size: 9px; padding: 1px 5px; }
+
+  /* ── Modals — full-screen on mobile ── */
+  .modal-overlay { align-items: flex-end; padding: 0; }
+  .modal-box {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 20px 20px 0 0;
+    max-height: 92vh;
+    overflow-y: auto;
+  }
+
+  /* Pricing tiers: stack vertically */
+  .modal-tiers {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .tier-card {
+    min-height: auto;
+  }
+
+  .auth-box {
+    width: 100% !important;
+    border-radius: 20px 20px 0 0;
+  }
+
+  /* ── Upgrade banner — full-width ── */
+  .upgrade-banner { width: 100%; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TABLET RESPONSIVE — 768px – 1023px
+═══════════════════════════════════════════════════════════ */
+@media (min-width: 768px) and (max-width: 1023px) {
+  :root { --sidebar-w: 260px; --info-w: 290px; }
+
+  /* Hide verbose header stats, keep freq + LIVE */
+  .header-stat:not(:first-of-type) { display: none; }
+  .search-bar { max-width: 260px; }
+
+  /* Legend: hide subtitle text */
+  .legend-label { font-size: 10px; }
+}
+
+/* ── Mobile: floating sidebar toggle button ── */
+@media (max-width: 767px) {
+  .sidebar-toggle {
+    /* Make it more tappable on mobile */
+    padding: 8px;
+    border-radius: 8px;
+  }
+  .hamburger span { width: 18px; }
+}
