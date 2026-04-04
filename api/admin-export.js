@@ -22,9 +22,9 @@ export default async function handler(req, res) {
 
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  // Auth: check admin key
-  const key = req.headers['x-admin-key'] ?? req.query?.key;
-  if (!ADMIN_SECRET || key !== ADMIN_SECRET) {
+  // V3 FIX: key ONLY via header — never query param (query params appear in logs)
+  const key = req.headers['x-admin-key'];
+  if (!ADMIN_SECRET || !key || key !== ADMIN_SECRET) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 

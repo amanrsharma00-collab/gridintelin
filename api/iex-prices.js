@@ -1,11 +1,12 @@
 // Vercel Serverless — IEX India DAM Area Prices (ESM)
-// package.json has "type":"module" so must use export default
-import { setCORSHeaders } from './_auth.js';
+// V1 FIX: SR/ER/NER gated behind Pro tier — free users get NR+WR only
+import { setCORSHeaders, verifyToken, getUserTier, extractToken } from './_auth.js';
 
 const SB_URL         = process.env.VITE_SUPABASE_URL;
-// Service key is NEVER sent to the browser — safe for server-side writes
 const SB_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const SB_ANON_KEY    = process.env.VITE_SUPABASE_ANON_KEY;
+
+// Areas accessible without a subscription
+const FREE_AREAS = new Set(['Northern Region', 'Western Region']);
 
 async function fetchIEXPrices() {
   const res = await fetch('https://www.iexindia.com/api/areaprice', {
@@ -20,12 +21,15 @@ async function fetchIEXPrices() {
   return res.json();
 }
 
-async function getFromSupabase() {
+async function getFromSupabase(isPro) {
   if (!SB_URL || !SB_SERVICE_KEY) return null;
-  const res = await fetch(
-    `${SB_URL}/rest/v1/iex_market_data?order=fetched_at.desc&limit=10`,
-    { headers: { apikey: SB_SERVICE_KEY, Authorization: `Bearer ${SB_SERVICE_KEY}` } }
-  );
+  // Free users: only NR+WR cached rows; Pro: all
+  const filter = isPro
+    ? 'order=fetched_at.desc&limit=10'
+    : 'order=fetched_at.desc&limit=10&area=in.(Northern Region,Western Region)';
+  const res = await fetch(`${SB_URL}/rest/v1/iex_market_data?${filter}`, {
+    headers: { apikey: SB_SERVICE_KEY, Authorization: `Bearer ${SB_SERVICE_KEY}` },
+  });
   return res.ok ? res.json() : null;
 }
 
@@ -46,37 +50,51 @@ function saveToSupabase(records) {
 export default async function handler(req, res) {
   setCORSHeaders(req, res);
   if (req.method === 'OPTIONS') return res.status(204).end();
-  res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=60');
+
+  // ── Tier resolution ─────────────────────────────────────────
+  // Try JWT if present; fall back to free. Never block — free users get NR+WR.
+  const token = extractToken(req);
+  let userTier = 'free';
+  if (token) {
+    try {
+      const user = await verifyToken(token);
+      if (user?.id) userTier = await getUserTier(user.id);
+    } catch {}
+  }
+  const isPro = ['pro', 'enterprise'].includes(userTier);
+
+  res.setHeader('Cache-Control', isPro
+    ? 'private, s-maxage=300, stale-while-revalidate=60'
+    : 's-maxage=900, stale-while-revalidate=60');
 
   let data, source;
 
   try {
     const raw = await fetchIEXPrices();
     const records = Array.isArray(raw)
-      ? raw
-          .map(d => ({
-            area: d.area || d.Area || d.name,
-            area_price: parseFloat(d.areaPrice || d.AreaPrice || d.price || 0),
-            market_type: 'DAM',
-            block_no: d.blockNo || null,
-          }))
-          .filter(r => r.area && r.area_price > 0)
+      ? raw.map(d => ({
+          area:        d.area || d.Area || d.name,
+          area_price:  parseFloat(d.areaPrice || d.AreaPrice || d.price || 0),
+          market_type: 'DAM',
+          block_no:    d.blockNo || null,
+        })).filter(r => r.area && r.area_price > 0)
       : [];
 
     if (records.length) {
-      saveToSupabase(records);
-      data = records;
+      saveToSupabase(records); // always save all 5 regions server-side
+      data   = records;
       source = 'IEX Live';
     } else throw new Error('empty response');
   } catch {
     try {
-      const cached = await getFromSupabase();
+      const cached = await getFromSupabase(isPro);
       if (cached?.length) { data = cached; source = 'Supabase Cache'; }
     } catch {}
   }
 
   if (!data?.length) {
     const rand = (n, v) => n + Math.round(Math.random() * v * 2 - v);
+    // Always generate all 5 internally; gate at the response layer
     data = [
       { area: 'Northern Region', area_price: rand(4820, 100), market_type: 'DAM' },
       { area: 'Western Region',  area_price: rand(4215, 100), market_type: 'DAM' },
@@ -87,5 +105,14 @@ export default async function handler(req, res) {
     source = 'Simulated';
   }
 
-  return res.status(200).json({ ok: true, data, source, ts: new Date().toISOString() });
+  // ── TIER GATE — the critical business rule ───────────────────
+  if (!isPro) {
+    data = data.filter(r => FREE_AREAS.has(r.area));
+  }
+
+  return res.status(200).json({
+    ok: true, data, source,
+    tier: userTier,           // let frontend know what tier was used
+    ts:   new Date().toISOString(),
+  });
 }
