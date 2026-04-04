@@ -1,8 +1,10 @@
 // Vercel Serverless — IEX India DAM Area Prices (ESM)
 // package.json has "type":"module" so must use export default
 
-const SB_URL = process.env.VITE_SUPABASE_URL;
-const SB_KEY = process.env.VITE_SUPABASE_ANON_KEY;
+const SB_URL         = process.env.VITE_SUPABASE_URL;
+// Service key is NEVER sent to the browser — safe for server-side writes
+const SB_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const SB_ANON_KEY    = process.env.VITE_SUPABASE_ANON_KEY;
 
 async function fetchIEXPrices() {
   const res = await fetch('https://www.iexindia.com/api/areaprice', {
@@ -18,22 +20,22 @@ async function fetchIEXPrices() {
 }
 
 async function getFromSupabase() {
-  if (!SB_URL || !SB_KEY) return null;
+  if (!SB_URL || !SB_SERVICE_KEY) return null;
   const res = await fetch(
     `${SB_URL}/rest/v1/iex_market_data?order=fetched_at.desc&limit=10`,
-    { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
+    { headers: { apikey: SB_SERVICE_KEY, Authorization: `Bearer ${SB_SERVICE_KEY}` } }
   );
   return res.ok ? res.json() : null;
 }
 
 function saveToSupabase(records) {
-  if (!SB_URL || !SB_KEY || !records.length) return;
+  if (!SB_URL || !SB_SERVICE_KEY || !records.length) return;
   fetch(`${SB_URL}/rest/v1/iex_market_data`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      apikey: SB_KEY,
-      Authorization: `Bearer ${SB_KEY}`,
+      apikey: SB_SERVICE_KEY,
+      Authorization: `Bearer ${SB_SERVICE_KEY}`,
       Prefer: 'return=minimal',
     },
     body: JSON.stringify(records),

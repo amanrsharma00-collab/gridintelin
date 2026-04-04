@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { REGION_CONFIG } from '../data/substations';
 
-export default function Header({ sidebarOpen, onToggleSidebar, onSearch, liveStats }) {
+export default function Header({ sidebarOpen, onToggleSidebar, onSearch, liveStats, userTier, currentUser, onUpgrade, onSignIn, onSignOut }) {
   const [query, setQuery] = useState('');
 
   const handleSearch = (e) => {
@@ -63,6 +63,19 @@ export default function Header({ sidebarOpen, onToggleSidebar, onSearch, liveSta
           <span className="live-dot" />
           LIVE
         </div>
+
+        {/* Auth controls */}
+        {currentUser ? (
+          <div className="header-user">
+            <span className={`tier-pill-sm ${userTier}`}>{userTier.toUpperCase()}</span>
+            <span className="header-email" title={currentUser.email}>
+              {currentUser.email?.split('@')[0]}
+            </span>
+            <button className="header-signout" onClick={onSignOut} title="Sign out">↩</button>
+          </div>
+        ) : (
+          <button className="header-signin-btn" onClick={onSignIn}>Sign In</button>
+        )}
       </div>
     </header>
   );

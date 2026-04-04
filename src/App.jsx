@@ -7,6 +7,7 @@ import InfoPanel from './components/InfoPanel';
 import LiveTicker from './components/LiveTicker';
 import Legend from './components/Legend';
 import UpgradeModal from './components/UpgradeModal';
+import AuthModal from './components/AuthModal';
 import { useMarketData, FREE_REGIONS } from './hooks/useMarketData';
 
 const supabase =
@@ -20,6 +21,8 @@ export default function App() {
   const [gridData, setGridData]             = useState([]);
   const [userTier, setUserTier]             = useState('free'); // 'free' | 'pro' | 'enterprise'
   const [showUpgrade, setShowUpgrade]       = useState(false);
+  const [showAuth, setShowAuth]             = useState(false);
+  const [currentUser, setCurrentUser]       = useState(null);
   const liveStats = useMarketData();
 
   const [filters, setFilters] = useState({
@@ -29,14 +32,26 @@ export default function App() {
     showLines: true,
   });
 
-  // Check user tier from Supabase Auth
+  // Check user tier from Supabase Auth (on mount + auth state change)
   useEffect(() => {
     if (!supabase) return;
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data?.user) return;
-      supabase.from('user_tiers').select('tier').eq('user_id', data.user.id).single()
-        .then(({ data: t }) => { if (t?.tier) setUserTier(t.tier); });
+
+    const syncUser = async (user) => {
+      setCurrentUser(user ?? null);
+      if (!user) { setUserTier('free'); return; }
+      const { data: t } = await supabase
+        .from('user_tiers').select('tier').eq('user_id', user.id).single();
+      if (t?.tier) setUserTier(t.tier);
+    };
+
+    // Initial session check
+    supabase.auth.getUser().then(({ data }) => syncUser(data?.user));
+
+    // Listen for sign-in / sign-out
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      syncUser(session?.user ?? null);
     });
+    return () => subscription.unsubscribe();
   }, []);
 
   // Fetch grid regions + real-time subscription
@@ -94,7 +109,10 @@ export default function App() {
         onToggleSidebar={() => setSidebarOpen(o => !o)}
         liveStats={liveStats}
         userTier={userTier}
+        currentUser={currentUser}
         onUpgrade={() => setShowUpgrade(true)}
+        onSignIn={() => setShowAuth(true)}
+        onSignOut={() => supabase?.auth.signOut()}
       />
 
       <div className="main-content">
@@ -133,7 +151,8 @@ export default function App() {
 
       <LiveTicker liveStats={liveStats} gridData={gridData} userTier={userTier} />
 
-      {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
+      {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} onSignIn={() => { setShowUpgrade(false); setShowAuth(true); }} />}
+      {showAuth && <AuthModal supabase={supabase} onClose={() => setShowAuth(false)} onAuth={user => setCurrentUser(user)} />}
     </div>
   );
 }

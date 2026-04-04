@@ -1,7 +1,8 @@
 // Vercel Serverless — POSOCO Grid Frequency (ESM)
 
-const SB_URL = process.env.VITE_SUPABASE_URL;
-const SB_KEY = process.env.VITE_SUPABASE_ANON_KEY;
+const SB_URL         = process.env.VITE_SUPABASE_URL;
+const SB_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const SB_ANON_KEY    = process.env.VITE_SUPABASE_ANON_KEY; // eslint-disable-line no-unused-vars
 
 async function tryFetch(url) {
   const res = await fetch(url, {
@@ -13,13 +14,13 @@ async function tryFetch(url) {
 }
 
 function saveFrequency(hz, source) {
-  if (!SB_URL || !SB_KEY) return;
+  if (!SB_URL || !SB_SERVICE_KEY) return;
   fetch(`${SB_URL}/rest/v1/grid_frequency`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      apikey: SB_KEY,
-      Authorization: `Bearer ${SB_KEY}`,
+      apikey: SB_SERVICE_KEY,
+      Authorization: `Bearer ${SB_SERVICE_KEY}`,
       Prefer: 'return=minimal',
     },
     body: JSON.stringify({ frequency_hz: hz, source }),
