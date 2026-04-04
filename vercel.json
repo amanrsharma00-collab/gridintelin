@@ -1,14 +1,7 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "framework": "vite",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/(.*)",     "destination": "/index.html" }
-  ],
-  "crons": [
-    { "path": "/api/iex-prices",        "schedule": "*/15 * * * *" },
-    { "path": "/api/posoco-frequency",  "schedule": "*/1  * * * *" },
-    { "path": "/api/merit-generation",  "schedule": "*/5  * * * *" }
+    { "source": "/((?!api).*)", "destination": "/index.html" }
   ]
 }
