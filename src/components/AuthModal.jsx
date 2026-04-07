@@ -1,18 +1,17 @@
 import { useState } from 'react';
 
-// Fire-and-forget: log auth event to our server-side tracking table
-async function logEvent(eventType, email, success, userId = null, error = null, provider = 'email') {
+async function logEvent(eventType, email, success, userId = null, error = null) {
   try {
     await fetch('/api/log-auth-event', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event_type: eventType, email, success, user_id: userId, error, provider }),
+      body: JSON.stringify({ event_type: eventType, email, success, user_id: userId, error }),
     });
   } catch {}
 }
 
 export default function AuthModal({ supabase, onClose, onAuth }) {
-  const [mode, setMode]         = useState('signin'); // 'signin' | 'signup'
+  const [mode, setMode]         = useState('signin');
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading]   = useState(false);
@@ -23,51 +22,43 @@ export default function AuthModal({ supabase, onClose, onAuth }) {
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    if (!supabase) {
+      setError('Auth not configured. Contact support.');
+      return;
+    }
+
     setLoading(true);
-
     try {
-      let result;
       if (mode === 'signin') {
-        result = await supabase.auth.signInWithPassword({ email, password });
-
-        if (result.error) {
-          logEvent('failed_sign_in', email, false, null, result.error.message);
-          setError(result.error.message);
-        } else if (result.data?.user) {
-          logEvent('sign_in', email, true, result.data.user.id);
-          onAuth?.(result.data.user);
+        const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
+        if (err) {
+          logEvent('failed_sign_in', email, false, null, err.message);
+          setError(err.message);
+        } else {
+          logEvent('sign_in', email, true, data.user.id);
+          onAuth?.(data.user);
           onClose();
         }
       } else {
-        result = await supabase.auth.signUp({ email, password });
-
-        if (result.error) {
-          logEvent('failed_sign_in', email, false, null, result.error.message);
-          setError(result.error.message);
-        } else if (result.data?.user) {
-          logEvent('sign_up', email, true, result.data.user.id);
-          setSuccess('Check your email to confirm your account, then sign in.');
+        const { data, error: err } = await supabase.auth.signUp({ email, password });
+        if (err) {
+          logEvent('failed_sign_in', email, false, null, err.message);
+          setError(err.message);
+        } else if (data.user && !data.user.email_confirmed_at) {
+          logEvent('sign_up', email, true, data.user.id);
+          setSuccess('Account created! Check your email to confirm, then sign in.');
+          setMode('signin');
+        } else if (data.user) {
+          // Auto-confirm is on — sign them in immediately
+          logEvent('sign_up', email, true, data.user.id);
+          onAuth?.(data.user);
+          onClose();
         }
       }
-    } catch (err) {
-      logEvent('failed_sign_in', email, false, null, 'Unexpected error');
+    } catch {
       setError('Unexpected error. Please try again.');
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogle = async () => {
-    setError('');
-    setLoading(true);
-    logEvent('google_oauth', null, true, null, null, 'google');
-    const { error: oauthErr } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/` },
-    });
-    if (oauthErr) {
-      logEvent('failed_sign_in', null, false, null, oauthErr.message, 'google');
-      setError(oauthErr.message);
       setLoading(false);
     }
   };
@@ -80,62 +71,68 @@ export default function AuthModal({ supabase, onClose, onAuth }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span className="modal-icon">⚡</span>
             <span style={{ color: '#e2e8f0', fontWeight: 700, fontSize: 15 }}>
-              {mode === 'signin' ? 'Sign In' : 'Create Account'}
+              {mode === 'signin' ? 'Sign In to GridIntelin' : 'Create Free Account'}
             </span>
           </div>
           <button className="ip-close" onClick={onClose}>✕</button>
         </div>
 
-        <p className="modal-sub" style={{ marginTop: 4, marginBottom: 16 }}>
+        <p className="modal-sub" style={{ marginTop: 4, marginBottom: 20 }}>
           {mode === 'signin'
-            ? 'Sign in to access your GridIntelin subscription.'
-            : 'Create a free account to get started.'}
+            ? 'Enter your credentials to access your subscription.'
+            : 'Free account gives you NR + WR regions and live data.'}
         </p>
-
-        {/* Google OAuth */}
-        <button className="auth-google-btn" onClick={handleGoogle} disabled={loading}>
-          <svg width="18" height="18" viewBox="0 0 48 48" style={{ marginRight: 8 }}>
-            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-          </svg>
-          Continue with Google
-        </button>
-
-        <div className="auth-divider"><span>or</span></div>
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="auth-field">
             <label>Email</label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-              placeholder="you@company.com" required autoFocus />
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="you@company.com"
+              required
+              autoFocus
+              autoComplete="email"
+            />
           </div>
           <div className="auth-field">
             <label>Password</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••" minLength={8} required />
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••"
+              minLength={6}
+              required
+              autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+            />
           </div>
 
           {error   && <div className="auth-error">{error}</div>}
           {success && <div className="auth-success">{success}</div>}
 
-          <button type="submit" className="auth-submit-btn" disabled={loading}>
+          <button type="submit" className="auth-submit-btn" disabled={loading || !supabase}>
             {loading ? 'Please wait…' : mode === 'signin' ? 'Sign In' : 'Create Account'}
           </button>
         </form>
 
         <div className="auth-switch">
           {mode === 'signin' ? (
-            <>Don't have an account?{' '}
-              <button onClick={() => { setMode('signup'); setError(''); setSuccess(''); }}>Sign up free</button>
+            <>Don&apos;t have an account?{' '}
+              <button onClick={() => { setMode('signup'); setError(''); setSuccess(''); }}>
+                Sign up free
+              </button>
             </>
           ) : (
             <>Already have an account?{' '}
-              <button onClick={() => { setMode('signin'); setError(''); setSuccess(''); }}>Sign in</button>
+              <button onClick={() => { setMode('signin'); setError(''); setSuccess(''); }}>
+                Sign in
+              </button>
             </>
           )}
         </div>
+
       </div>
     </div>
   );

@@ -16,7 +16,8 @@ const supabase =
     : null;
 
 export default function App() {
-  const [sidebarOpen, setSidebarOpen]       = useState(true);
+  // Start closed on mobile so the map is visible immediately
+  const [sidebarOpen, setSidebarOpen]       = useState(() => window.innerWidth > 767);
   const [selectedEntity, setSelectedEntity] = useState(null);
   const [gridData, setGridData]             = useState([]);
   const [userTier, setUserTier]             = useState('free'); // 'free' | 'pro' | 'enterprise'
